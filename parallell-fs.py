@@ -10,6 +10,8 @@ target_dir = "/tmp/tt"
 ignored_patterns = [".git", ".*\.pyc"]
 compiled_patterns = []
 
+symlinked_nodes = { "data": "." }
+
 def compile_patterns():
     for pattern in ignored_patterns:
         compiled_patterns.append(re.compile(pattern))
@@ -23,6 +25,17 @@ def is_ignored(node):
         i = i + 1
     return is_matching
 
+def get_symlink(node):
+    for key in symlinked_nodes:
+        if key == node:
+            print (key, node, symlinked_nodes[node])
+            return symlinked_nodes[node]
+    return None
+
+def create_symlink(origin, dst):
+    print ("Creating symlink...", origin, ">>", dst)
+    os.symlink(origin, dst)
+
 compile_patterns()
 
 # traverse root directory, and list directories as dirs and files as files
@@ -32,8 +45,14 @@ for root, dirs, files in os.walk(source_dir):
     # create new directories
     if not is_ignored(relative_root):
         if not os.path.exists(target_root):
-            print ("Creating dir: ", target_root)
-            os.makedirs(target_root)
+            symlink_origin = get_symlink(relative_root)
+            if symlink_origin == '.':
+                symlink_origin = source_dir + "/" + relative_root
+            if symlink_origin:
+                create_symlink(symlink_origin, target_root)
+            else:
+                print ("Creating dir: ", target_root)
+                os.makedirs(target_root)
         for file in files:
             if not is_ignored(file):
                 do_copy_file = False
