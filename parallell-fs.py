@@ -12,6 +12,8 @@ compiled_patterns = []
 
 symlinked_nodes = { "data": "." }
 
+added_files = { "/Dropbox/aa": "builder/util" }
+
 def compile_patterns():
     for pattern in ignored_patterns:
         compiled_patterns.append(re.compile(pattern))
@@ -36,12 +38,34 @@ def create_symlink(origin, dst):
     print ("Creating symlink...", origin, ">>", dst)
     os.symlink(origin, dst)
 
+def get_added_files(dir):
+    files_to_add = []
+    for key in added_files:
+        print(added_files[key], '<->', dir)
+        if added_files[key] == dir:
+            files_to_add.append(key)
+    return files_to_add
+
+def copy_if_necessary(source_file, target_file, target_root):
+    do_copy_file = False
+    if os.path.exists(target_file):
+        t = os.path.getmtime(source_file)
+        t2 = os.path.getmtime(target_file)
+        if t != t2:
+            do_copy_file = True
+    else:
+        do_copy_file = True
+    if do_copy_file:
+        print ("Copying file ", source_file)
+        shutil.copy2(source_file, target_root)
+
 compile_patterns()
 
 # traverse root directory, and list directories as dirs and files as files
 for root, dirs, files in os.walk(source_dir):
     relative_root = root.replace(source_dir + '/', '')
     target_root = root.replace(source_dir, target_dir)
+    ignore_copying_files = False
     # create new directories
     if not is_ignored(relative_root):
         if not os.path.exists(target_root):
@@ -50,25 +74,25 @@ for root, dirs, files in os.walk(source_dir):
                 symlink_origin = source_dir + "/" + relative_root
             if symlink_origin:
                 create_symlink(symlink_origin, target_root)
+                ignore_copying_files = True
             else:
                 print ("Creating dir: ", target_root)
                 os.makedirs(target_root)
-        for file in files:
-            if not is_ignored(file):
-                do_copy_file = False
-                source_file = root + '/' + file
-                target_file = target_root + '/' + file
-                if os.path.exists(target_file):
-                    t = os.path.getmtime(source_file)
-                    t2 = os.path.getmtime(target_file)
-                    if t != t2:
-                        do_copy_file = True
+        if not ignore_copying_files:
+            files_to_copy = []
+            for file in files:
+                if not is_ignored(file):
+                    source_file = root + '/' + file
+                    target_file = target_root + '/' + file
+                    files_to_copy.append({'source': source_file, 'target': target_file})
                 else:
-                    do_copy_file = True
-                if do_copy_file:
-                    print ("Copying file ", source_file)
-                    shutil.copy2(source_file, target_root)
-            else:
-                print("Ignoring: ", file)
+                    print("Ignoring: ", file)
+
+            for file_to_copy in files_to_copy:
+                copy_if_necessary(file_to_copy['source'], file_to_copy['target'], target_root)
+
+            for added_file in get_added_files(relative_root):
+                copy_if_necessary(added_file, added_file.replace(os.path.dirname(added_file), target_root), target_root)
+
     else:
         print ("Ignoring: ", target_root)
