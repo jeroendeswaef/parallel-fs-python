@@ -1,0 +1,11 @@
+# General source/target settings
+---
+source_dir: /opt/antlrtry
+target_dir: /tmp/tt
+ignored_patterns:
+- .git
+- .*\.pyc
+symlinked_nodes:
+  data: .
+added_files: {}
+...

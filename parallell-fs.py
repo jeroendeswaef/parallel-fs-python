@@ -1,18 +1,27 @@
-#!/usr/bin/python
+#!/usr/bin/python3
+
+from yaml import load, dump
 
 import os
 import shutil
 import re
+import sys
 
-source_dir = "/opt/antlrtry"
-target_dir = "/tmp/tt"
+stream = open("settings.yaml", 'r')
+settings = load(stream)
 
-ignored_patterns = [".git", ".*\.pyc"]
+source_dir = settings['source_dir']
+target_dir = settings['target_dir']
+
+if not os.path.exists(source_dir):
+    print("source directory does not exist")
+    sys.exit(1)
+
+ignored_patterns = settings['ignored_patterns']
 compiled_patterns = []
 
-symlinked_nodes = { "data": "." }
-
-added_files = { "/Dropbox/aa": "builder/util" }
+symlinked_nodes = settings['symlinked_nodes']
+added_files = settings['added_files']
 
 def compile_patterns():
     for pattern in ignored_patterns:
